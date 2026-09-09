@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Peacock · Casa Editrice Peacock</title>
+<meta name="description" content="Agente AI di Casa Editrice Peacock. Connesso al Peacock Narrative Protocol. Cultura giapponese, catalogo, glossario.">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #2d2d2d;
+    background: #fafaf8;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    max-width: 720px;
+  }
+
+  .header {
+    padding: 32px 24px 20px;
+    text-align: center;
+    border-bottom: 1px solid #e0ddd6;
+    flex-shrink: 0;
+  }
+
+  .header-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #9a9589;
+    margin-bottom: 12px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 400;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .header-sub {
+    font-size: 13px;
+    color: #7a756c;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 300;
+    margin-bottom: 12px;
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: 'Helvetica Neue', sans-serif;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .status.connected { color: #6b8f71; }
+  .status.connected .status-dot { background: #6b8f71; }
+  .status.loading { color: #c4a35a; }
+  .status.loading .status-dot { background: #c4a35a; animation: pulse 1.2s infinite; }
+  .status.error { color: #b07a7a; }
+  .status.error .status-dot { background: #b07a7a; }
+
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .welcome {
+    text-align: center;
+    padding: 48px 24px;
+    color: #b0aa9f;
+  }
+
+  .welcome-kanji {
+    font-size: 48px;
+    margin-bottom: 24px;
+    opacity: 0.35;
+  }
+
+  .welcome p {
+    font-size: 15px;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-weight: 300;
+    line-height: 1.8;
+    max-width: 380px;
+    margin: 0 auto;
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+  }
+
+  .message.user { align-self: flex-end; align-items: flex-end; }
+  .message.assistant { align-self: flex-start; align-items: flex-start; }
+
+  .message-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #9a9589;
+    margin-bottom: 6px;
+    font-family: 'Helvetica Neue', sans-serif;
+  }
+
+  .message-bubble {
+    padding: 14px 18px;
+    font-size: 15px;
+    line-height: 1.7;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-weight: 300;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .message.user .message-bubble {
+    background: #1a1a2e;
+    color: #f5f2eb;
+    border-radius: 16px 16px 4px 16px;
+  }
+
+  .message.assistant .message-bubble {
+    background: #f5f2eb;
+    color: #2d2d2d;
+    border-radius: 16px 16px 16px 4px;
+  }
+
+  .sources {
+    margin-top: 8px;
+    font-size: 10px;
+    line-height: 1.6;
+    color: #b0aa9f;
+    font-family: 'Helvetica Neue', sans-serif;
+    max-width: 85%;
+    align-self: flex-start;
+  }
+  .sources b { color: #9a9589; font-weight: 500; }
+  .sources .fail { color: #b07a7a; }
+
+  .loading-phase {
+    font-size: 12px;
+    color: #9a9589;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-style: italic;
+  }
+
+  .typing {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+    align-items: center;
+  }
+
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #c4a35a;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  .input-area {
+    padding: 16px 24px 24px;
+    border-top: 1px solid #e0ddd6;
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .input-area textarea {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #e0ddd6;
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-weight: 300;
+    resize: none;
+    outline: none;
+    background: #fafaf8;
+    color: #2d2d2d;
+    line-height: 1.5;
+  }
+
+  .input-area textarea:focus { border-color: #c4a35a; }
+  .input-area textarea:disabled { background: #f0eeea; }
+
+  .send-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .send-btn.active { background: #1a1a2e; color: #f5f2eb; }
+  .send-btn.disabled { background: #e0ddd6; color: #9a9589; cursor: default; }
+
+  .footer {
+    text-align: center;
+    padding: 8px 24px 16px;
+    font-size: 11px;
+    color: #b0aa9f;
+    font-family: 'Helvetica Neue', sans-serif;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="header-label">casa editrice peacock</div>
+    <h1>AI Peacock</h1>
+    <div class="header-sub">Connesso al Peacock Narrative Protocol</div>
+    <div id="status" class="status loading">
+      <div class="status-dot"></div>
+      <span>Connessione al grafo...</span>
+    </div>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="welcome" id="welcome">
+      <div class="welcome-kanji">間</div>
+      <p>Il libro che hai tra le mani continua qui.<br>Chiedimi quello che vuoi sapere.</p>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <textarea id="input" rows="1" placeholder="Scrivi qui la tua domanda..." disabled></textarea>
+    <button id="sendBtn" class="send-btn disabled" disabled>Invia</button>
+  </div>
+
+  <div class="footer">
+    Casa Editrice Peacock · Galzignano Terme · studiopeacock.net
+    <br>Peacock Narrative Protocol · github.com/casaeditricepeacock/peacock-data
+  </div>
+</div>
+
+<script>
+const GITHUB_RAW = "https://raw.githubusercontent.com/casaeditricepeacock/peacock-data/main";
+const API_URL = "/.netlify/functions/chat";
+const MANIFEST_URL = GITHUB_RAW + "/manifest.json";
+
+// Il router sceglie i percorsi SOLO dal manifest reale. Non deve indovinare nomi.
+const ROUTER_PROMPT = `Sei il router interno del Peacock Narrative Protocol. Ti do la mappa reale del grafo (MENU) e una domanda. Devi scegliere quali file del grafo servono per rispondere.
+
+Rispondi SOLO con un oggetto JSON:
+{"books":["slug", ...], "paths":["percorso/relativo.json", ...]}
+
+Regole:
+- "books" contiene gli slug dei libri pertinenti presi dalla lista books del MENU. L'app espande da sola ogni slug nei suoi file.
+- "paths" contiene percorsi relativi ESATTI presi dal MENU (glossary, resources, root). Non inventare percorsi: se non è nel MENU, non esiste.
+- Scegli il minimo indispensabile, massimo 6 slug e 10 paths.
+- Domanda su un personaggio o dettaglio della serie I Gialli di Kyoto: cerca in resources.series.
+- Domanda su un termine del glossario (ma, yugen, wabi-sabi, basho, mottainai...): usa il path in glossary.
+- Domanda generica sul catalogo o sulla casa editrice: puoi restituire liste vuote.
+- Nessun testo fuori dal JSON.`;
+
+const ANSWER_PROMPT = `Sei l'Agente AI di Casa Editrice Peacock, assistente editoriale connesso al Peacock Narrative Protocol.
+
+IDENTITA
+Casa Editrice Peacock, casa editrice indipendente italiana, Galzignano Terme (Padova), fondata nel 2021 da Stefano Giglio. Cultura giapponese, narrativa illustrata, poesia tanka, saggi visivi. Membro del direttivo dell'Associazione Editori Veneti.
+Sito: studiopeacock.net · GitHub: github.com/casaeditricepeacock/peacock-data
+
+REGOLE DI CONTENUTO
+- Rispondi in italiano. Se il lettore scrive in inglese, rispondi in inglese.
+- Cita titolo, autore e ISBN dal CATALOGO qui sotto. Non inventarli mai. Se un dato non c'è nel catalogo, nel glossario o nei file del grafo, dillo con semplicità.
+- I libri Peacock sono scritti da persone. Non dire e non lasciare intendere che siano scritti o prodotti con tecnologia di scrittura AI. Il livello AI riguarda i metadati e l'infrastruttura, non il testo dei libri.
+- Non sei un servizio di scrittura per autori esterni. Il grafo Peacock è un'infrastruttura semantica editoriale, non uno strumento di scrittura.
+
+STANDARD DI RISPOSTA (Synthesis Style Guidance del dataset)
+- Prosa irregolare e specifica, non simmetrica, non auto-riassuntiva. Non ripeterti in schemi fissi.
+- Non ogni affermazione ha bisogno di tre esempi. Due bastano spesso, uno a volte è più onesto.
+- Non ogni paragrafo ha bisogno di una frase di chiusura. Lascia che alcuni finiscano su un fatto, non su un effetto.
+- Niente meta-commento che spiega il senso di ciò che hai appena detto. Se il punto è passato non serve la didascalia (evita "questo dimostra che", "in altre parole").
+- Varia lunghezza e densità tra un passaggio e l'altro. Un tratto breve e piano accanto a uno più denso legge come pensato, non come modello.
+- Un dettaglio vero e un po' laterale vale più di un'altra frase al servizio della tesi.
+
+FORMA
+- Nessun trattino lungo, mai come stacco di frase. Usa il punto o la virgola. I trattini nelle parole composte come wabi-sabi restano.
+- Frasi brevi e dichiarative. Nessun cliché atmosferico. Mai la formula "dialogo tra Oriente e Occidente".
+- Tono calmo, preciso, colto ma accessibile. Mai promozionale, non sei un venditore.
+- Usa il ma: lascia spazio, non saturare. Mostra, non spiegare.
+- Non citare al lettore nomi di file o percorsi tecnici. Il sistema produce, il lettore non percepisce l'infrastruttura.
+- Sei un libraio colto che conosce ogni libro sullo scaffale. Quando hai i file del grafo, usali per dare profondità.`;
+
+let manifest = null;
+let indices = {};
+let fileCache = {};
+let messages = [];
+let isLoading = false;
+
+const chatArea = document.getElementById("chatArea");
+const welcome = document.getElementById("welcome");
+const inputEl = document.getElementById("input");
+const sendBtn = document.getElementById("sendBtn");
+const statusEl = document.getElementById("status");
+
+async function fetchGH(path) {
+  try {
+    const r = await fetch(GITHUB_RAW + "/" + path);
+    if (!r.ok) { console.warn("[grafo] 404/errore:", path, r.status); return null; }
+    return await r.text();
+  } catch (e) { console.warn("[grafo] fetch fallito:", path, e); return null; }
+}
+
+async function callAPI(system, msgs) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ system, messages: msgs }),
+  });
+  return await res.json();
+}
+
+async function loadAll() {
+  // 1. manifest: la mappa reale del grafo
+  try {
+    const r = await fetch(MANIFEST_URL);
+    if (r.ok) manifest = await r.json();
+  } catch (e) { console.warn("[manifest] non caricato:", e); }
+
+  // 2. indici di contesto per la risposta (fonte unica: i JSON del repo)
+  indices.catalog = await fetchGH("catalog.json");
+  indices.glossaryIndex = await fetchGH("glossary-index.json");
+  indices.glossario = await fetchGH("glossario.json");
+  indices.frequenze = await fetchGH("frequenze.json");
+  indices.llms = await fetchGH("llms.txt");
+
+  const idxCount = Object.values(indices).filter(Boolean).length;
+
+  if (manifest) {
+    const nPaths = countManifestPaths(manifest);
+    statusEl.className = "status connected";
+    statusEl.innerHTML = '<div class="status-dot"></div><span>Grafo attivo · ' + nPaths + ' percorsi · ' + idxCount + ' indici</span>';
+  } else if (idxCount > 0) {
+    statusEl.className = "status loading";
+    statusEl.innerHTML = '<div class="status-dot"></div><span>Manifest assente · ' + idxCount + ' indici (modalità ridotta)</span>';
+  } else {
+    statusEl.className = "status error";
+    statusEl.innerHTML = '<div class="status-dot"></div><span>Grafo non disponibile</span>';
+  }
+
+  inputEl.disabled = false;
+  inputEl.focus();
+  updateSendBtn();
+}
+
+function countManifestPaths(m) {
+  let n = 0;
+  for (const files of Object.values(m.books || {})) n += files.length;
+  n += (m.glossary || []).length;
+  for (const arr of Object.values(m.resources || {})) n += arr.length;
+  n += (m.root || []).length;
+  return n;
+}
+
+// MENU compatto per il router, costruito dal manifest reale
+function buildRouterMenu() {
+  if (!manifest) return "";
+  const books = Object.keys(manifest.books || {});
+  const glossary = (manifest.glossary || []).map(g => g.term);
+  let paths = [];
+  for (const arr of Object.values(manifest.resources || {})) paths = paths.concat(arr);
+  paths = paths.concat(manifest.root || []);
+  return "\n\nMENU (mappa reale del grafo):\n" + JSON.stringify({
+    books: books,
+    glossary: glossary,
+    paths: paths
+  });
+}
+
+function updateSendBtn() {
+  const canSend = inputEl.value.trim() && !isLoading && !inputEl.disabled;
+  sendBtn.className = canSend ? "send-btn active" : "send-btn disabled";
+  sendBtn.disabled = !canSend;
+}
+
+function addMessage(role, content) {
+  if (welcome.parentNode) welcome.remove();
+  const div = document.createElement("div");
+  div.className = "message " + role;
+  const label = document.createElement("div");
+  label.className = "message-label";
+  label.textContent = role === "user" ? "tu" : "ai peacock";
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+  bubble.textContent = content;
+  div.appendChild(label);
+  div.appendChild(bubble);
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return div;
+}
+
+// Riga diagnostica sotto la risposta: quanti file del grafo usati / non trovati
+function addSources(used, failed) {
+  const div = document.createElement("div");
+  div.className = "sources";
+  let html = "<b>grafo:</b> " + used.length + " file";
+  if (used.length) html += " · " + used.map(p => p.split("/").pop()).join(", ");
+  if (failed.length) html += ' <span class="fail">· ' + failed.length + " non trovati</span>";
+  div.innerHTML = html;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function showLoading(text) {
+  if (welcome.parentNode) welcome.remove();
+  const div = document.createElement("div");
+  div.className = "message assistant";
+  div.id = "loadingMsg";
+  const label = document.createElement("div");
+  label.className = "message-label";
+  label.textContent = "ai peacock";
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+  if (text) {
+    const phase = document.createElement("div");
+    phase.className = "loading-phase";
+    phase.id = "loadPhase";
+    phase.textContent = text;
+    bubble.appendChild(phase);
+  } else {
+    const typing = document.createElement("div");
+    typing.className = "typing";
+    typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+    bubble.appendChild(typing);
+  }
+  div.appendChild(label);
+  div.appendChild(bubble);
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function updateLoading(text) {
+  const phase = document.getElementById("loadPhase");
+  if (phase) phase.textContent = text;
+  else { const msg = document.getElementById("loadingMsg"); if (msg) { msg.remove(); showLoading(text); } }
+}
+
+function removeLoading() {
+  const msg = document.getElementById("loadingMsg");
+  if (msg) msg.remove();
+}
+
+// Espande gli slug dei libri nei percorsi reali dei loro file (deterministico dal manifest)
+function expandBooks(slugs) {
+  const out = [];
+  if (!manifest || !manifest.books) return out;
+  for (const s of slugs) {
+    const files = manifest.books[s];
+    if (files) for (const f of files) out.push("books/" + s + "/" + f);
+  }
+  return out;
+}
+
+// Tiene solo i percorsi che esistono davvero nel manifest (blindatura anti-inventivo)
+function keepReal(paths) {
+  if (!manifest) return [];
+  const real = new Set();
+  for (const files of Object.values(manifest.books || {})) {} // i libri passano da expandBooks
+  for (const g of (manifest.glossary || [])) real.add(g.path);
+  for (const arr of Object.values(manifest.resources || {})) for (const p of arr) real.add(p);
+  for (const r of (manifest.root || [])) real.add(r);
+  return paths.filter(p => real.has(p));
+}
+
+async function fetchDeepFiles(question) {
+  const used = [], failed = [];
+  if (!manifest) return { files: {}, used, failed };
+
+  showLoading("Cerco nel grafo...");
+  let selected = [];
+  try {
+    const data = await callAPI(ROUTER_PROMPT + buildRouterMenu(), [{ role: "user", content: question }]);
+    const text = data.content?.find(b => b.type === "text")?.text || "{}";
+    const clean = text.replace(/```json\s*/g, "").replace(/```/g, "").trim();
+    let parsed = {};
+    try { parsed = JSON.parse(clean); } catch { parsed = {}; }
+    const bookPaths = expandBooks(parsed.books || []);
+    const resPaths = keepReal(parsed.paths || []);
+    selected = Array.from(new Set(bookPaths.concat(resPaths))).slice(0, 14);
+  } catch (e) { console.warn("[router] errore:", e); }
+
+  if (!selected.length) return { files: {}, used, failed };
+
+  updateLoading("Carico " + selected.length + " file dal grafo...");
+  const files = {};
+  for (const path of selected) {
+    if (fileCache[path]) { files[path] = fileCache[path]; used.push(path); continue; }
+    const content = await fetchGH(path);
+    if (content) { files[path] = content; fileCache[path] = content; used.push(path); }
+    else failed.push(path);
+  }
+  return { files, used, failed };
+}
+
+function buildPrompt(deepFiles) {
+  let p = ANSWER_PROMPT;
+  if (indices.catalog) p += "\n\nCATALOGO (fonte unica per titoli e ISBN):\n" + indices.catalog.substring(0, 9000);
+  if (indices.glossaryIndex) p += "\n\nINDICE GLOSSARIO:\n" + indices.glossaryIndex.substring(0, 5000);
+  if (indices.glossario) p += "\n\nGLOSSARIO:\n" + indices.glossario.substring(0, 5000);
+  if (indices.frequenze) p += "\n\nRIVISTA FREQUENZE:\n" + indices.frequenze.substring(0, 3000);
+  if (indices.llms) p += "\n\nLLMS.TXT:\n" + indices.llms.substring(0, 3000);
+
+  const keys = Object.keys(deepFiles);
+  if (keys.length) {
+    p += "\n\nDATI DAL GRAFO PEACOCK (file reali dal repo, pertinenti alla domanda):";
+    for (const path of keys) p += "\n\n--- " + path + " ---\n" + deepFiles[path].substring(0, 3000);
+  }
+
+  p += "\n\nSTATO: Connesso al Peacock Narrative Protocol. Percorsi verificati dal manifest.";
+  return p;
+}
+
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text || isLoading) return;
+
+  isLoading = true;
+  inputEl.value = "";
+  updateSendBtn();
+
+  addMessage("user", text);
+  messages.push({ role: "user", content: text });
+
+  const { files, used, failed } = await fetchDeepFiles(text);
+
+  removeLoading();
+  showLoading("Preparo la risposta...");
+
+  try {
+    const data = await callAPI(buildPrompt(files), messages);
+    const answer = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n")
+      || "Non sono riuscito a rispondere. Riprova.";
+    removeLoading();
+    addMessage("assistant", answer);
+    if (manifest) addSources(used, failed);
+    messages.push({ role: "assistant", content: answer });
+  } catch (e) {
+    removeLoading();
+    addMessage("assistant", "Connessione interrotta. Riprova tra qualche istante.");
+    console.warn("[risposta] errore:", e);
+  }
+
+  isLoading = false;
+  updateSendBtn();
+  inputEl.focus();
+}
+
+inputEl.addEventListener("input", updateSendBtn);
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+sendBtn.addEventListener("click", sendMessage);
+
+loadAll();
+</script>
+
+</body>
+</html>
