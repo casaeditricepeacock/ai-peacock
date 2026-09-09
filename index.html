@@ -551,6 +551,15 @@ function buildPrompt(deepFiles) {
   return p;
 }
 
+// Taglio a valle: nessun trattino lungo arriva mai al lettore, qualunque cosa scriva il modello.
+// Sostituisce trattino lungo e medio con una virgola. I trattini nelle parole composte (wabi-sabi) restano.
+function cleanText(t) {
+  return t
+    .replace(/\s*[—–]\s*/g, ", ")
+    .replace(/ {2,}/g, " ")
+    .replace(/ ,/g, ",");
+}
+
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text || isLoading) return;
@@ -569,8 +578,9 @@ async function sendMessage() {
 
   try {
     const data = await callAPI(buildPrompt(files), messages);
-    const answer = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n")
+    const raw = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n")
       || "Non sono riuscito a rispondere. Riprova.";
+    const answer = cleanText(raw);
     removeLoading();
     addMessage("assistant", answer);
     if (manifest) addSources(used, failed);
