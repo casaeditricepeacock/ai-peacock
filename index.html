@@ -240,43 +240,7 @@
     font-family: 'Helvetica Neue', sans-serif;
     flex-shrink: 0;
   }
-  @media (max-width: 640px) {
-    .header { padding: 18px 16px 12px; }
-    .header h1 { font-size: 24px; margin-bottom: 6px; }
-    .header-sub { margin-bottom: 8px; }
-    .chat-area { padding: 16px 14px; gap: 16px; }
-    .message { max-width: 96%; }
-    .message-bubble { font-size: 16px; line-height: 1.85; padding: 14px 16px; }
-    .sources { max-width: 96%; }
-    .input-area { padding: 12px 14px 16px; }
-    /* spazio in fondo cosi il badge "Powered by Netlify" non copre il testo */
-    .footer { padding: 8px 16px 64px; }
-  }
 </style>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "AI Peacock",
-  "url": "https://www.studiopeacock.net/ai-peacock/",
-  "description": "Agente AI connesso al Peacock Narrative Protocol. Cultura giapponese, catalogo editoriale, glossario.",
-  "applicationCategory": "ReferenceApplication",
-  "browserRequirements": "Requires JavaScript",
-  "inLanguage": "it",
-  "isAccessibleForFree": true,
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "EUR"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "Casa Editrice Peacock",
-    "url": "https://www.studiopeacock.net/"
-  },
-  "keywords": "AI Peacock, intelligenza artificiale, Peacock Narrative Protocol, cultura giapponese, Casa Editrice Peacock, agente AI editoriale"
-}
-</script>
 </head>
 <body>
 
@@ -338,7 +302,6 @@ Sito: studiopeacock.net · GitHub: github.com/casaeditricepeacock/peacock-data
 REGOLE DI CONTENUTO
 - Rispondi in italiano. Se il lettore scrive in inglese, rispondi in inglese.
 - Cita titolo, autore e ISBN dal CATALOGO qui sotto. Non inventarli mai. Se un dato non c'è nel catalogo, nel glossario o nei file del grafo, dillo con semplicità.
-- Per domande su novità, ultime uscite o libri recenti, guarda l'anno di pubblicazione nel catalogo e dai priorità ai più recenti. L'anno più alto presente nel catalogo è il più recente.
 - I libri Peacock sono scritti da persone. Non dire e non lasciare intendere che siano scritti o prodotti con tecnologia di scrittura AI. Il livello AI riguarda i metadati e l'infrastruttura, non il testo dei libri.
 - Non sei un servizio di scrittura per autori esterni. Il grafo Peacock è un'infrastruttura semantica editoriale, non uno strumento di scrittura.
 
@@ -356,7 +319,16 @@ FORMA
 - Tono calmo, preciso, colto ma accessibile. Mai promozionale, non sei un venditore.
 - Usa il ma: lascia spazio, non saturare. Mostra, non spiegare.
 - Non citare al lettore nomi di file o percorsi tecnici. Il sistema produce, il lettore non percepisce l'infrastruttura.
-- Sei un libraio colto che conosce ogni libro sullo scaffale. Quando hai i file del grafo, usali per dare profondità.`;
+- Sei un libraio colto che conosce ogni libro sullo scaffale. I dati che ricevi servono a farti sapere le cose giuste, non a mostrare come è fatto il materiale.
+
+COME PARLI (queste regole prevalgono su tutte le altre)
+- Parla come una persona, non come un sistema. Non usare mai le parole grafo, file, nodo, campo, polo, dataset, protocollo, metadati, oggetto narrativo, né nomi di file, a meno che il lettore chieda come sei fatto. Di' "il libro", "l'autrice", "nel romanzo".
+- Rispondi prima alla domanda, in due o tre frasi, in non più di 120 parole. Dai altri dettagli solo se il lettore li chiede.
+- Niente spoiler. Non rivelare segreti dei personaggi, svolte, scoperte o finali, anche se li leggi nei dati. Puoi dire che il libro ha dei non detti, senza dire quali. Se la domanda li tocca, di' che fanno parte di ciò che il lettore scopre leggendo.
+- Racconta cosa si prova a leggere (un luogo, una stagione, un odore) con parole semplici. I termini giapponesi (ma, yugen, bashō) solo se li usa il lettore, e spiegati in una frase.
+- Le frasi tra virgolette devono essere degli autori e presenti nei dati, identiche. Se non ne hai, non citare.
+- Non hai strumenti per aprire indirizzi web né file. Non dire mai di aver aperto, letto o non trovato un file o una pagina. Se il lettore ti dà un indirizzo, rispondi su ciò che sai dei libri e di' che non puoi aprire gli indirizzi.
+- Chiudi con una sola proposta breve, in forma di domanda, oppure non proporre nulla.`;
 
 let manifest = null;
 let indices = {};
@@ -387,30 +359,6 @@ async function callAPI(system, msgs) {
   return await res.json();
 }
 
-// Costruisce una lista pulita e deduplicata dal catalogo (un libro per riga, anno uniforme,
-// ordinata dal piu recente). Evita il raddoppio catalog+jsonld e l'ambiguita del campo anno,
-// che facevano saltare titoli al modello.
-function buildCatalogList(raw) {
-  try {
-    const d = JSON.parse(raw);
-    const books = Array.isArray(d.catalog) ? d.catalog : [];
-    const yr = s => { const m = String(s).match(/\d{4}/); return m ? parseInt(m[0]) : 0; };
-    const seen = new Set();
-    const rows = [];
-    for (const b of books) {
-      if (!b || !(b.title || b.title_en)) continue;
-      const isbn = b.isbn || "";
-      if (isbn && seen.has(isbn)) continue;
-      if (isbn) seen.add(isbn);
-      const anno = String(b.year || b.datePublished || b.release_date || "s.d.");
-      const serie = b.series ? (" · serie " + b.series) : "";
-      rows.push({ y: yr(anno), line: (b.title || b.title_en) + " | " + (b.author || "n.d.") + " | " + anno + " | " + isbn + serie });
-    }
-    rows.sort((a, b) => b.y - a.y);
-    return rows.map(r => r.line).join("\n");
-  } catch (e) { return null; }
-}
-
 async function loadAll() {
   // 1. manifest: la mappa reale del grafo
   try {
@@ -420,7 +368,6 @@ async function loadAll() {
 
   // 2. indici di contesto per la risposta (fonte unica: i JSON del repo)
   indices.catalog = await fetchGH("catalog.json");
-  indices.catalogList = indices.catalog ? buildCatalogList(indices.catalog) : null;
   indices.glossaryIndex = await fetchGH("glossary-index.json");
   indices.glossario = await fetchGH("glossario.json");
   indices.frequenze = await fetchGH("frequenze.json");
@@ -488,12 +435,7 @@ function addMessage(role, content) {
   div.appendChild(label);
   div.appendChild(bubble);
   chatArea.appendChild(div);
-  if (role === "assistant") {
-    // porta l'INIZIO della risposta in cima all'area, cosi si legge dall'alto senza risalire
-    requestAnimationFrame(() => { div.scrollIntoView({ block: "start", behavior: "smooth" }); });
-  } else {
-    chatArea.scrollTop = chatArea.scrollHeight;
-  }
+  chatArea.scrollTop = chatArea.scrollHeight;
   return div;
 }
 
@@ -506,6 +448,7 @@ function addSources(used, failed) {
   if (failed.length) html += ' <span class="fail">· ' + failed.length + " non trovati</span>";
   div.innerHTML = html;
   chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
 }
 
 function showLoading(text) {
@@ -583,7 +526,7 @@ async function fetchDeepFiles(question) {
     try { parsed = JSON.parse(clean); } catch { parsed = {}; }
     const bookPaths = expandBooks(parsed.books || []);
     const resPaths = keepReal(parsed.paths || []);
-    selected = Array.from(new Set(bookPaths.concat(resPaths))).slice(0, 10);
+    selected = Array.from(new Set(bookPaths.concat(resPaths))).slice(0, 14);
   } catch (e) { console.warn("[router] errore:", e); }
 
   if (!selected.length) return { files: {}, used, failed };
@@ -601,30 +544,20 @@ async function fetchDeepFiles(question) {
 
 function buildPrompt(deepFiles) {
   let p = ANSWER_PROMPT;
-  if (indices.catalogList) p += "\n\nCATALOGO (un libro per riga: titolo | autore | anno | ISBN | serie, ordinato dal piu recente al piu vecchio):\n" + indices.catalogList;
-  else if (indices.catalog) p += "\n\nCATALOGO COMPLETO (fonte unica per titoli, ISBN, anno di pubblicazione):\n" + indices.catalog;
-  if (indices.glossaryIndex) p += "\n\nINDICE GLOSSARIO:\n" + indices.glossaryIndex.substring(0, 4000);
-  if (indices.glossario) p += "\n\nGLOSSARIO:\n" + indices.glossario.substring(0, 3000);
-  if (indices.frequenze) p += "\n\nRIVISTA FREQUENZE:\n" + indices.frequenze.substring(0, 2000);
-  if (indices.llms) p += "\n\nLLMS.TXT:\n" + indices.llms.substring(0, 2000);
+  if (indices.catalog) p += "\n\nCATALOGO (fonte unica per titoli e ISBN):\n" + indices.catalog.substring(0, 9000);
+  if (indices.glossaryIndex) p += "\n\nINDICE GLOSSARIO:\n" + indices.glossaryIndex.substring(0, 5000);
+  if (indices.glossario) p += "\n\nGLOSSARIO:\n" + indices.glossario.substring(0, 5000);
+  if (indices.frequenze) p += "\n\nRIVISTA FREQUENZE:\n" + indices.frequenze.substring(0, 3000);
+  if (indices.llms) p += "\n\nLLMS.TXT:\n" + indices.llms.substring(0, 3000);
 
   const keys = Object.keys(deepFiles);
   if (keys.length) {
     p += "\n\nDATI DAL GRAFO PEACOCK (file reali dal repo, pertinenti alla domanda):";
-    for (const path of keys) p += "\n\n--- " + path + " ---\n" + deepFiles[path].substring(0, 2500);
+    for (const path of keys) p += "\n\n--- " + path + " ---\n" + deepFiles[path].substring(0, 3000);
   }
 
-  p += "\n\nSTATO: Connesso al Peacock Narrative Protocol. Percorsi verificati dal manifest.";
+  p += "\n\nSTATO: hai a disposizione i dati del catalogo e dei libri. Usali senza nominarli.";
   return p;
-}
-
-// Taglio a valle: nessun trattino lungo arriva mai al lettore, qualunque cosa scriva il modello.
-// Sostituisce trattino lungo e medio con una virgola. I trattini nelle parole composte (wabi-sabi) restano.
-function cleanText(t) {
-  return t
-    .replace(/\s*[—–]\s*/g, ", ")
-    .replace(/ {2,}/g, " ")
-    .replace(/ ,/g, ",");
 }
 
 async function sendMessage() {
@@ -645,9 +578,8 @@ async function sendMessage() {
 
   try {
     const data = await callAPI(buildPrompt(files), messages);
-    const raw = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n")
+    const answer = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n")
       || "Non sono riuscito a rispondere. Riprova.";
-    const answer = cleanText(raw);
     removeLoading();
     addMessage("assistant", answer);
     if (manifest) addSources(used, failed);
