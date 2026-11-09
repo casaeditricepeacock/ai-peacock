@@ -22,7 +22,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body);
-
+    
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -31,15 +31,15 @@ exports.handler = async (event) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: body.model || "claude-haiku-4-5-20251001",
-        max_tokens: body.max_tokens || 1200,
-        system: body.system || "",
-        messages: body.messages || [],
+        model: process.env.CHAT_MODEL || "claude-haiku-4-5-20251001",
+        max_tokens: Math.min(Number(body.max_tokens) || 1200, 1200),
+        system: String(body.system || "").slice(0, 80000),
+        messages: Array.isArray(body.messages) ? body.messages.slice(-20) : [],
       }),
     });
 
     const data = await response.json();
-
+    
     return {
       statusCode: 200,
       headers: {
