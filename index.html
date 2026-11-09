@@ -498,8 +498,8 @@ function expandBooks(slugs) {
   for (const s of slugs) {
     const files = manifest.books[s];
     if (files) for (const f of files) {
-      // i file dei silenzi, delle transizioni e del sistema contengono svolte e non detti: non vanno al modello
-      if (/narrative-(silence|transition|system-graph)\.json$/.test(f)) continue;
+      // al modello arrivano solo rituali e atmosfera: scene, oggetti, silenzi, transizioni, campo e stampa contengono svolte e non detti
+      if (!/narrative-(ritual|weather)\.json$/.test(f)) continue;
       out.push("books/" + s + "/" + f);
     }
   }
