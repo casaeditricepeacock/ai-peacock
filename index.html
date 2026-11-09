@@ -497,7 +497,11 @@ function expandBooks(slugs) {
   if (!manifest || !manifest.books) return out;
   for (const s of slugs) {
     const files = manifest.books[s];
-    if (files) for (const f of files) out.push("books/" + s + "/" + f);
+    if (files) for (const f of files) {
+      // i file dei silenzi, delle transizioni e del sistema contengono svolte e non detti: non vanno al modello
+      if (/narrative-(silence|transition|system-graph)\.json$/.test(f)) continue;
+      out.push("books/" + s + "/" + f);
+    }
   }
   return out;
 }
