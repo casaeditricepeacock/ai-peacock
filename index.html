@@ -548,9 +548,31 @@ async function fetchDeepFiles(question) {
   return { files, used, failed };
 }
 
+function compactCatalog(raw) {
+  // una riga per libro: così tutti i titoli stanno nel prompt (il catalogo intero supera i 45.000 caratteri)
+  try {
+    const c = JSON.parse(raw);
+    const list = Array.isArray(c.catalog) ? c.catalog : [];
+    return list.map(b => {
+      const bits = [b.title];
+      if (b.title_en) bits.push("(" + b.title_en + ")");
+      if (b.author) bits.push("di " + b.author);
+      if (b.series) bits.push("serie " + b.series);
+      if (b.isbn) bits.push("ISBN " + b.isbn);
+      if (b.year) bits.push("anno " + b.year);
+      if (b.release_date) bits.push("uscito il " + b.release_date);
+      if (b.price_eur) bits.push(b.price_eur + " euro");
+      if (b.setting) bits.push("ambientato a " + b.setting);
+      return "- " + bits.join(" | ");
+    }).join("\n");
+  } catch (e) {
+    return raw.substring(0, 9000);
+  }
+}
+
 function buildPrompt(deepFiles) {
   let p = ANSWER_PROMPT;
-  if (indices.catalog) p += "\n\nCATALOGO (fonte unica per titoli e ISBN):\n" + indices.catalog.substring(0, 9000);
+  if (indices.catalog) p += "\n\nCATALOGO (fonte unica per titoli, ISBN e date; un libro con data di uscita passata è già in libreria):\n" + compactCatalog(indices.catalog);
   if (indices.glossaryIndex) p += "\n\nINDICE GLOSSARIO:\n" + indices.glossaryIndex.substring(0, 5000);
   if (indices.glossario) p += "\n\nGLOSSARIO:\n" + indices.glossario.substring(0, 5000);
   if (indices.frequenze) p += "\n\nRIVISTA FREQUENZE:\n" + indices.frequenze.substring(0, 3000);
